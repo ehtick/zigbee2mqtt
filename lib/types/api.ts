@@ -69,6 +69,8 @@ export interface Zigbee2MQTTGroupOptions {
 
 export interface Zigbee2MQTTSettings {
     version?: number;
+    /** only used internally during startup, removed on successful Z2M start */
+    onboarding?: true;
     homeassistant: {
         enabled: boolean;
         discovery_topic: string;
@@ -140,6 +142,7 @@ export interface Zigbee2MQTTSettings {
     };
     frontend: {
         enabled: boolean;
+        package: "zigbee2mqtt-frontend" | "zigbee2mqtt-windfront";
         auth_token?: string;
         host?: string;
         port: number;
@@ -260,7 +263,7 @@ export interface Zigbee2MQTTNetworkMap {
         networkAddress: number;
         manufacturerName: string | undefined;
         modelID: string | undefined;
-        failed: string[];
+        failed?: string[];
         lastSeen: number | undefined;
         definition?: {model: string; vendor: string; supports: string; description: string};
     }[];
@@ -474,7 +477,7 @@ export interface Zigbee2MQTTAPI {
     "bridge/request/device/bind": {
         from: string;
         from_endpoint: string | number | "default";
-        to: string;
+        to: string | number;
         to_endpoint?: string | number;
         clusters?: string[];
         skip_disable_reporting?: boolean;
@@ -483,7 +486,7 @@ export interface Zigbee2MQTTAPI {
     "bridge/response/device/bind": {
         from: string;
         from_endpoint: string | number;
-        to: string;
+        to: string | number;
         to_endpoint: string | number | undefined;
         clusters: string[];
         failed: string[];
@@ -492,7 +495,7 @@ export interface Zigbee2MQTTAPI {
     "bridge/request/device/unbind": {
         from: string;
         from_endpoint: string | number | "default";
-        to: string;
+        to: string | number;
         to_endpoint?: string | number;
         clusters?: string[];
         skip_disable_reporting?: boolean;
@@ -501,7 +504,7 @@ export interface Zigbee2MQTTAPI {
     "bridge/response/device/unbind": {
         from: string;
         from_endpoint: string | number;
-        to: string;
+        to: string | number;
         to_endpoint: string | number | undefined;
         clusters: string[];
         failed: string[];
@@ -855,7 +858,15 @@ export type Zigbee2MQTTRequestEndpoints =
     | "bridge/request/group/members/remove_all"
     | "bridge/request/touchlink/factory_reset"
     | "bridge/request/touchlink/scan"
-    | "bridge/request/touchlink/identify";
+    | "bridge/request/touchlink/identify"
+    | "{friendlyNameOrId}/set"
+    | "{friendlyNameOrId}/set/{attribute}"
+    | "{friendlyNameOrId}/{endpoint}/set"
+    | "{friendlyNameOrId}/{endpoint}/set/{attribute}"
+    | "{friendlyNameOrId}/get"
+    | "{friendlyNameOrId}/get/{attribute}"
+    | "{friendlyNameOrId}/{endpoint}/get"
+    | "{friendlyNameOrId}/{endpoint}/get/{attribute}";
 
 export type Zigbee2MQTTResponseEndpoints =
     | "bridge/response/permit_join"

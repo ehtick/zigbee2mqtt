@@ -43,6 +43,7 @@ export const defaults = {
     },
     frontend: {
         enabled: false,
+        package: "zigbee2mqtt-frontend",
         port: 8080,
         base_url: "/",
     },
@@ -177,6 +178,22 @@ export function writeMinimalDefaults(): void {
     _settings = read();
 
     loadSettingsWithDefaults();
+}
+
+export function setOnboarding(value: boolean): void {
+    const settings = getPersistedSettings();
+
+    if (value) {
+        if (!settings.onboarding) {
+            settings.onboarding = value;
+
+            write();
+        }
+    } else if (settings.onboarding) {
+        delete settings.onboarding;
+
+        write();
+    }
 }
 
 export function write(): void {

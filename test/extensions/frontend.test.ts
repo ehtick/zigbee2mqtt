@@ -1,8 +1,8 @@
 import * as data from "../mocks/data";
 import {mockLogger} from "../mocks/logger";
-import {mockMQTTPublishAsync} from "../mocks/mqtt";
+import {events as mockMQTTEvents, mockMQTTPublishAsync} from "../mocks/mqtt";
 import {type EventHandler, flushPromises} from "../mocks/utils";
-import {devices} from "../mocks/zigbeeHerdsman";
+import {devices, events as mockZHEvents} from "../mocks/zigbeeHerdsman";
 
 import path from "node:path";
 
@@ -230,6 +230,7 @@ describe("Extension: Frontend", () => {
         mockWSClient.readyState = "open";
         mockWS.clients.push(mockWSClient);
         await mockWSEvents.connection(mockWSClient);
+        devices.bulb_color.linkquality = 20;
 
         const allTopics = mockWSClient.send.mock.calls.map(([m]) => JSON.parse(m).topic);
         expect(allTopics).toContain("bridge/devices");
@@ -249,7 +250,7 @@ describe("Extension: Frontend", () => {
                 state: "ON",
                 effect: null,
                 power_on_behavior: null,
-                linkquality: null,
+                linkquality: 20,
                 update: {state: null, installed_version: -1, latest_version: -1},
             }),
             {retain: false, qos: 0},
@@ -270,9 +271,36 @@ describe("Extension: Frontend", () => {
                 topic: "bulb_color",
                 payload: {
                     state: "ON",
-                    effect: null,
                     power_on_behavior: null,
-                    linkquality: null,
+                    effect: null,
+                    linkquality: 20,
+                    update: {state: null, installed_version: -1, latest_version: -1},
+                },
+            }),
+        );
+
+        // Should publish bridge messages
+        await mockZHEvents.deviceJoined({device: devices.bulb});
+        await flushPromises();
+        expect(mockWSClient.send).toHaveBeenCalledWith(
+            stringify({payload: {data: {friendly_name: "bulb", ieee_address: "0x000b57fffec6a5b2"}, type: "device_joined"}, topic: "bridge/event"}),
+        );
+
+        // Should send JSON state event when `output: attribute`
+        mockWSClient.send.mockClear();
+        settings.set(["advanced", "output"], "attribute");
+        await mockMQTTEvents.message("zigbee2mqtt/bulb_color/set", stringify({brightness: 90}));
+        await flushPromises();
+        expect(mockWSClient.send).toHaveBeenCalledTimes(1);
+        expect(mockWSClient.send).toHaveBeenCalledWith(
+            stringify({
+                topic: "bulb_color",
+                payload: {
+                    state: "ON",
+                    brightness: 90,
+                    power_on_behavior: null,
+                    effect: null,
+                    linkquality: 20,
                     update: {state: null, installed_version: -1, latest_version: -1},
                 },
             }),
@@ -338,7 +366,7 @@ describe("Extension: Frontend", () => {
         expect(mockHTTP.listen).toHaveBeenCalledWith(8081, "127.0.0.1");
     });
 
-    it("Authentification", async () => {
+    it("Authentication", async () => {
         const authToken = "sample-secure-token";
         settings.set(["frontend", "auth_token"], authToken);
         controller = new Controller(vi.fn(), vi.fn());
